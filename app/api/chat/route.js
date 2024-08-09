@@ -23,10 +23,10 @@ Your goal is to provide accurate information, assist with common inquiries, and 
 
 export async function POST(req){
     const openai = new OpenAI()
-    const data = await req.json()
+    const data = await req.json() //gets json data from request
 
-    const completion = await openai.chat.completions.create({
-        messages: [
+    const completion = await openai.chat.completions.create({ //await - multiple req can be sent 
+        messages: [  //each message object has a role & content
             {
                 role: 'system',
                 content: systemPrompt,
@@ -34,24 +34,24 @@ export async function POST(req){
             ...data,
         ],
         model: 'gpt-4o-mini',
-        stream: true,
+        stream: true, //to have text returned iteratvely, set the stream parameter to true
     })
 
-    const stream = new ReadableStream({
-        async start(controller){
-            const encoder = new TextEncoder()
+    const stream = new ReadableStream({ 
+        async start(controller){ //how the stream starts. Controllers handle HTTP requests and responses
+            const encoder = new TextEncoder() //TextEncoder takes a stream of code points as input and emits a stream of bytes
             try {
-                for await (const chunk of completion){
-                    const content = chunk.choices[0]?.delta?.content
-                    if (content) {
-                        const text = encoder.encode(content)
-                        controller.enqueue(text)
+                for await (const chunk of completion){ //waits for every chunk openai sends
+                    const content = chunk.choices[0].delta.content //we then extract content from each chunk
+                    if (content) { //check if it exists
+                        const text = encoder.encode(content) // if exists, then encode it
+                        controller.enqueue(text) //send to the controller
                     }
                 }                  
             } catch (err) {
                 controller.error(err)
             } finally {
-                controller.close()
+                controller.close() //close the controller
             }
         }
     })
