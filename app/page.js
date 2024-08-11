@@ -1,61 +1,86 @@
-/*
-currently this code is not getting ai responses - will fix on 8/9/24 * 6pm-10pm Pacific Standard Time
-issue - i need to get new API keys, current one: reached my quota limit.
-*/
-
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Box, Stack, Typography, Button, Modal, TextField} from '@mui/material'
+import { Box, Button, Stack, TextField } from '@mui/material'
+import { useState, useEffect, useRef } from 'react'
 
 export default function Home() {
-  const [messages, setMessages] = useState([{
-    role: 'assistant',
-    content: `Hi, I'm the Headstarter AI Support Agent, how can I assist you today?`
-  }]);
+  const [messages, setMessages] = useState([
+    {
+      role: 'assistant',
+      content: "Hi, I'm the Headstarter AI Support Agent. How can I assist you today?",
+    },
+  ])
+  const [message, setMessage] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
-  // whatever message user types:
-  const [message, setMessage] = useState('');
+  // Reference to the end of the messages list
+  const messagesEndRef = useRef(null)
 
-  const sendMessage = async() => {
+  // Function to scroll to the bottom of the messages list
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  // Scroll to the bottom whenever messages change
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
+  const sendMessage = async () => {
+    if (!message.trim() || isLoading) return;
+    setIsLoading(true)
+
     setMessage('')
     setMessages((messages) => [
       ...messages,
-      {role: 'user', content: message},
-      {role: 'assistant', content: ''}
+      { role: 'user', content: message },
+      { role: 'assistant', content: '' },
     ])
-  
 
-    const response = fetch('/api/chat',{
-      method:'POST',
-      headers:{
-        'Content-Type' : 'application/json'
-      },
-      body: JSON.stringify([...messages, {role: 'user', content: message}]),
-    }).then(async (res) => {
-      const reader = res.body.getReader()
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify([...messages, { role: 'user', content: message }]),
+      })
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok')
+      }
+
+      const reader = response.body.getReader()
       const decoder = new TextDecoder()
 
-      let result = ''
-      return reader.read().then(function processText({done, value}){
-        if (done){
-          return result
-        }
-        const text = decoder.decode(value || new Int8Array(), {stream:true})
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const text = decoder.decode(value, { stream: true })
         setMessages((messages) => {
           let lastMessage = messages[messages.length - 1]
           let otherMessages = messages.slice(0, messages.length - 1)
-          return([
+          return [
             ...otherMessages,
-            {
-              ...lastMessage,
-              content: lastMessage.content + text,
-            },
-          ])
+            { ...lastMessage, content: lastMessage.content + text },
+          ]
         })
-        return reader.read().then(processText)
-      })
-    })
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      setMessages((messages) => [
+        ...messages,
+        { role: 'assistant', content: "I'm sorry, but I encountered an error. Please try again later." },
+      ])
+    }
+    setIsLoading(false)
+  }
+
+  const handleKeyPress = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault()
+      sendMessage()
+    }
   }
 
   return (
@@ -102,18 +127,27 @@ export default function Home() {
               </Box>
             </Box>
           ))}
+          {/* This div will ensure the auto-scroll to bottom */}
+          <div ref={messagesEndRef} />
         </Stack>
-        <Stack direction="row" spacing={2}
-        >
-          <TextField label = "message" fullWidth value={message} onChange={(e) => setMessage(e.target.value)}/>
-          {/* </TextField> */}
-
-          <Button variant = "contained" onClick={sendMessage}>
-            Send
+        <Stack direction="row" spacing={2}>
+          <TextField 
+            label="Message" 
+            fullWidth 
+            value={message} 
+            onChange={(e) => setMessage(e.target.value)} 
+            onKeyPress={handleKeyPress}
+            disabled={isLoading}
+          />
+          <Button 
+            variant="contained" 
+            onClick={sendMessage}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Sending...' : 'Send'}
           </Button>
         </Stack>
       </Stack>
     </Box>
-  );
+  )
 }
-
