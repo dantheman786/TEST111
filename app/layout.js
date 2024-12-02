@@ -4,8 +4,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Headstarter AI Support",
-  description: "Headstarter AI Support Chatbot (Powered by OpenAI)",
+  title: "Social Media Support App",
+  description: "Social Media Chatbot (Powered by OpenAI)",
 };
 
 export default function RootLayout({ children }) {

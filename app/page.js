@@ -1,35 +1,31 @@
 'use client'
 
-import { Box, Button, Stack, TextField } from '@mui/material'
+import { Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { useState, useEffect, useRef } from 'react'
 
 export default function Home() {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: "Hi, I'm the Headstarter AI Support Agent. How can I assist you today?",
+      content: "Hi, I'm your digital wellness assistant.\n\nHow can I help you build healthier social media and screen time habits today?",
     },
   ])
   const [message, setMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  // Reference to the end of the messages list
   const messagesEndRef = useRef(null)
 
-  // Function to scroll to the bottom of the messages list
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
-  // Scroll to the bottom whenever messages change
   useEffect(() => {
     scrollToBottom()
   }, [messages])
 
   const sendMessage = async () => {
-    if (!message.trim() || isLoading) return;
+    if (!message.trim() || isLoading) return
     setIsLoading(true)
-
     setMessage('')
     setMessages((messages) => [
       ...messages,
@@ -40,9 +36,7 @@ export default function Home() {
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify([...messages, { role: 'user', content: message }]),
       })
 
@@ -58,8 +52,8 @@ export default function Home() {
         if (done) break
         const text = decoder.decode(value, { stream: true })
         setMessages((messages) => {
-          let lastMessage = messages[messages.length - 1]
-          let otherMessages = messages.slice(0, messages.length - 1)
+          const lastMessage = messages[messages.length - 1]
+          const otherMessages = messages.slice(0, messages.length - 1)
           return [
             ...otherMessages,
             { ...lastMessage, content: lastMessage.content + text },
@@ -82,72 +76,154 @@ export default function Home() {
       sendMessage()
     }
   }
-
+  function renderMessageContent(content) {
+    const parts = content.split(/(\*\*.*?\*\*)/); // Split by bold markers
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return (
+          <b key={index}>
+            {part.slice(2, -2)} {/* Remove the surrounding ** */}
+          </b>
+        );
+      }
+      return part; // Render non-bold text as is
+    });
+  }
   return (
-    <Box 
-      width="100vw" 
-      height="100vh" 
-      display="flex" 
-      flexDirection="column" 
-      justifyContent="center" 
-      alignItems="center"
-    > 
+    <Box
+      sx={{
+        width: '100vw',
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        bgcolor: '#121212', // Dark background
+        color: '#E0E0E0', // Light text
+        padding: 3,
+      }}
+    >
       <Stack
-        direction="column" 
-        width="600px" 
-        height="700px" 
-        border="1px solid black" 
-        p={2} 
-        spacing={3}
+        direction="column"
+        sx={{
+          width: '100%',
+          maxWidth: '600px',
+          height: '80%',
+          bgcolor: '#1E1E1E', // Slightly lighter dark background
+          borderRadius: 3,
+          boxShadow: '0 4px 10px rgba(0, 0, 0, 0.7)', // Subtle shadow
+          overflow: 'hidden',
+        }}
       >
-        <Stack // This one is for the messages
-          direction="column" 
-          spacing={2} 
-          flexGrow={1} 
-          overflow="auto" 
-          maxHeight="100%"
+        <Box
+          sx={{
+            padding: 2,
+            bgcolor: '#333333', // Darker header
+            color: '#FFFFFF',
+            textAlign: 'center',
+          }}
+        >
+          <Typography variant="h6" component="h1">
+            Digital Wellness Assistant
+          </Typography>
+        </Box>
+        <Stack
+          direction="column"
+          spacing={2}
+          sx={{
+            flexGrow: 1,
+            padding: 2,
+            overflowY: 'auto',
+            '&::-webkit-scrollbar': {
+              width: '6px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: '#444', // Dark scrollbar thumb
+              borderRadius: '3px',
+            },
+          }}
         >
           {messages.map((message, index) => (
-            <Box 
-              key={index} 
-              display='flex' 
-              justifyContent={
-                message.role === 'assistant' ? 'flex-start' : 'flex-end'
-              }
+            <Box
+              key={index}
+              sx={{
+                display: 'flex',
+                justifyContent: message.role === 'assistant' ? 'flex-start' : 'flex-end',
+              }}
             >
-              <Box 
-                bgcolor={
-                  message.role === 'assistant' ? 'primary.main' : 'secondary.main'
-                }
-                color="white"
-                borderRadius={16}
-                p={3}
+              <Box
+                sx={{
+                  bgcolor: message.role === 'assistant' ? '#2E2E2E' : '#4A4A4A', // Muted bubble colors
+                  color: '#E0E0E0',
+                  borderRadius: 2,
+                  padding: 1.5,
+                  maxWidth: '80%',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  boxShadow: '0 2px 5px rgba(0, 0, 0, 0.5)', // Subtle bubble shadow
+                }}
               >
-                {message.content}
+                  {renderMessageContent(message.content)}
               </Box>
             </Box>
           ))}
-          {/* This div will ensure the auto-scroll to bottom */}
           <div ref={messagesEndRef} />
         </Stack>
-        <Stack direction="row" spacing={2}>
-          <TextField 
-            label="Message" 
-            fullWidth 
-            value={message} 
-            onChange={(e) => setMessage(e.target.value)} 
+        <Box
+          sx={{
+            display: 'flex',
+            padding: 2,
+            borderTop: '1px solid',
+            borderColor: '#444',
+            bgcolor: '#1E1E1E',
+          }}
+        >
+          <TextField
+            fullWidth
+            variant="outlined"
+            placeholder="Type your message..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             disabled={isLoading}
+            sx={{
+              marginRight: 2,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                bgcolor: '#333333', // Dark input box
+                '&:hover fieldset': {
+                  borderColor: '#666666',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: '#888888',
+                },
+              },
+              input: {
+                color: '#E0E0E0',
+              },
+              '& .MuiInputLabel-root': {
+                color: '#AAAAAA',
+              },
+            }}
           />
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             onClick={sendMessage}
             disabled={isLoading}
+            sx={{
+              borderRadius: 2,
+              bgcolor: '#444444', // Muted button color
+              color: '#E0E0E0',
+              '&:hover': {
+                bgcolor: '#555555',
+              },
+            }}
           >
             {isLoading ? 'Sending...' : 'Send'}
           </Button>
-        </Stack>
+        </Box>
       </Stack>
     </Box>
   )
 }
+
